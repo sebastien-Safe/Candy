@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="/Candy/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>C@NDY &mdash; Moreau Paul</title>
@@ -73,11 +73,14 @@ nav{position:sticky;top:0;z-index:200;background:rgba(254,250,249,.92);backdrop-
 .ordo-textarea{width:100%;border:none;outline:none;font-family:"Times New Roman",serif;font-size:1rem;color:var(--ardoise);resize:none;min-height:220px;line-height:1.85;background:transparent}
 @media(max-width:700px){.hero{grid-template-columns:auto 1fr}.secu-block{display:none}.g2{grid-template-columns:1fr}.cg{grid-template-columns:1fr}.cst{grid-template-columns:repeat(3,1fr)}.hi{grid-template-columns:1fr}.tabs{overflow-x:auto;flex-wrap:nowrap}.tab{white-space:nowrap;font-size:.8rem;padding:8px 12px}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 <nav>
-  <a href="/Candy/patients.html" class="nav-brand">C<span style="color:var(--cerise)">@</span>NDY<span class="nav-badge">D&eacute;mo</span></a>
-  <a href="/Candy/patients.html" class="nav-back">&larr; Liste des patients</a>
+  <a href="patients.html" class="nav-brand">C<span style="color:var(--cerise)">@</span>NDY<span class="nav-badge">D&eacute;mo</span></a>
+  <a href="patients.html" class="nav-back">&larr; Liste des patients</a>
 </nav>
 
 <div class="page">
@@ -287,23 +290,42 @@ function showOrdo(mode){
 const d=document.getElementById('ordo-date-today');
 if(d)d.textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
 
-const SK='candy_suivi_4';
-const saved=localStorage.getItem(SK);
-if(saved)document.getElementById('suivi-notes').value=saved;
-let st;
-function saveSuivi(){clearTimeout(st);st=setTimeout(()=>{localStorage.setItem(SK,document.getElementById('suivi-notes').value);const s=document.getElementById('suivi-saved');s.style.display='inline';setTimeout(()=>s.style.display='none',2000);},600);}
+// Notes de suivi — Supabase C@NDY
+let _candyPatientId = null;
 
-let rec,il=false;
-function toggleDictee(){
-  const btn=document.getElementById('mic-btn'),status=document.getElementById('dictee-status');
-  if(!('webkitSpeechRecognition'in window||'SpeechRecognition'in window)){alert("Dictée vocale non supportée. Utilisez Chrome.");return;}
-  if(il){rec.stop();il=false;btn.style.background='rgba(196,113,122,.1)';btn.textContent='🎤';status.style.display='none';return;}
-  rec=new(window.SpeechRecognition||window.webkitSpeechRecognition)();rec.lang='fr-FR';rec.continuous=true;rec.interimResults=true;
-  rec.onstart=()=>{il=true;btn.style.background='rgba(192,57,43,.15)';btn.textContent='⏹';status.style.display='block';status.textContent='🔴 Dictée en cours…';};
-  rec.onresult=e=>{let f='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)f+=e.results[i][0].transcript;}if(f){const ta=document.getElementById('suivi-notes');ta.value+=(ta.value&&!ta.value.endsWith(' ')?' ':'')+f;saveSuivi();}};
-  rec.onerror=()=>{il=false;btn.style.background='rgba(196,113,122,.1)';btn.textContent='🎤';status.style.display='none';};
-  rec.onend=()=>{if(il){il=false;btn.style.background='rgba(196,113,122,.1)';btn.textContent='🎤';status.style.display='none';}};
-  rec.start();
+async function initSuivi() {
+  const ok = await CandyAuth.requireAuth();
+  if (!ok) return;
+  const sb   = CandyAuth.getClient();
+  const user = await CandyAuth.getUser();
+  // Patient démo n°4 (trié par nom)
+  const { data: demos } = await sb.from('patients')
+    .select('id').eq('is_demo', true).order('nom')
+    .range(3, 3);
+  _candyPatientId = demos?.[0]?.id || null;
+  if (!_candyPatientId) return;
+  const { data: note } = await sb.from('notes_suivi')
+    .select('contenu').eq('patient_id', _candyPatientId)
+    .eq('auteur_id', user.id).maybeSingle();
+  const ta = document.getElementById('suivi-notes');
+  if (ta && note?.contenu) ta.value = note.contenu;
+}
+
+let _suiviTimer;
+async function saveSuivi() {
+  clearTimeout(_suiviTimer);
+  _suiviTimer = setTimeout(async () => {
+    if (!_candyPatientId) return;
+    const sb      = CandyAuth.getClient();
+    const user    = await CandyAuth.getUser();
+    const contenu = document.getElementById('suivi-notes')?.value || '';
+    await sb.from('notes_suivi').upsert(
+      { patient_id: _candyPatientId, auteur_id: user.id, contenu, updated_at: new Date().toISOString() },
+      { onConflict: 'patient_id,auteur_id' }
+    );
+    const s = document.getElementById('suivi-saved');
+    if (s) { s.style.display='inline'; setTimeout(()=>s.style.display='none',2000); }
+  }, 800);
 }
 
 const PK='candy_pj_4';
@@ -311,7 +333,8 @@ function addPJ(input,type){if(!input.files.length)return;const f=input.files[0];
 function renderPJ(){const pjs=JSON.parse(localStorage.getItem(PK)||'[]');const grid=document.getElementById('pj-grid');grid.querySelectorAll('.pj-dyn').forEach(c=>c.remove());const add=document.getElementById('pj-add-btn');pjs.forEach(pj=>{const c=document.createElement('div');c.className='pj-card pj-dyn';c.innerHTML='<div style="font-size:1.8rem">'+(pj.type==='pdf'?'📄':'🖼')+'</div><div style="font-size:.74rem;font-weight:600;color:var(--ardoise);margin-top:4px">'+pj.name.slice(0,18)+'</div><div style="font-size:.67rem;color:var(--mut)">'+pj.date+'</div>';c.onclick=()=>alert('Aperçu dans la version complète C@NDY.');grid.insertBefore(c,add);});}
 renderPJ();
 
-const OBK='candy_ob_4';
+const OBK='candy_ob_demo';
+initSuivi();
 if(!localStorage.getItem(OBK)){document.getElementById('ob').style.display='flex';localStorage.setItem(OBK,'1');}
 </script>
 </body>

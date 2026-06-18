@@ -211,7 +211,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(254,250,249,.92);backdrop-
 </div>
 
 <script>
-const SUPABASE_URL = "https://qdjmzietysukediqkebg.supabase.co";
+const SUPABASE_URL = "https://dsfhvtkuwvaexybfqbsa.supabase.co";
 const SUPABASE_KEY = "sb_publishable_8uD3m60n9GfMt2h_GkmB7w_MpdFN5_s";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -286,25 +286,38 @@ function showApp(){
 }
 
 // ── DATA ──
-function loadData(){
-  const saved = localStorage.getItem(STORAGE_KEY);
-  tasks = saved ? JSON.parse(saved) : DEFAULT_TASKS;
+async function loadData() {
+  const sb   = CandyAuth.getClient();
+  const user = await CandyAuth.getUser();
+  if (!user) return;
+  const { data } = await sb.from('notes_suivi')
+    .select('contenu').eq('auteur_id', user.id).is('patient_id', null).maybeSingle();
+  if (data?.contenu) {
+    try { tasks = JSON.parse(data.contenu); } catch(e) { tasks = []; }
+  }
   render();
 }
 
-function saveData(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+async function saveData() {
+  const sb   = CandyAuth.getClient();
+  const user = await CandyAuth.getUser();
+  if (!user) return;
+  await sb.from('notes_suivi').upsert(
+    { patient_id: null, auteur_id: user.id,
+      contenu: JSON.stringify(tasks), updated_at: new Date().toISOString() },
+    { onConflict: 'patient_id,auteur_id' }
+  );
 }
 
 function loadNotes(){
-  document.getElementById('notes-area').value = localStorage.getItem(NOTES_KEY)||'';
+  document.getElementById('notes-area').value = ||'';
 }
 
 let notesTimer;
 function saveNotes(){
   clearTimeout(notesTimer);
   notesTimer = setTimeout(()=>{
-    localStorage.setItem(NOTES_KEY, document.getElementById('notes-area').value);
+    .value);
     const s = document.getElementById('notes-saved');
     s.style.display='block';
     setTimeout(()=>s.style.display='none',2000);

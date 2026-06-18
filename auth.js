@@ -1,7 +1,6 @@
 // ================================================================
-// C@NDY — Service d'authentification v2
-// Autonome — aucune dépendance avec le CRM S@FE
-// RGPD renforcé — isolation complète par rôle
+// C@NDY — Service d'authentification v2.1
+// Correction : getRole() via RPC + fallback robuste
 // ================================================================
 
 const CandyAuth = (() => {
@@ -9,6 +8,7 @@ const CandyAuth = (() => {
   let _sb      = null;
   let _user    = null;
   let _profile = null;
+  let _role    = null;
 
   function init() {
     _sb = window.supabase.createClient(CANDY_SUPABASE_URL, CANDY_SUPABASE_KEY);
@@ -36,50 +36,60 @@ const CandyAuth = (() => {
     if (_profile) return _profile;
     const user = await getUser();
     if (!user) return null;
-    const { data } = await getClient()
+    const { data, error } = await getClient()
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
-    _profile = data;
+      .maybeSingle();  // maybeSingle évite l'erreur si 0 ligne
+    if (error) console.warn('[CandyAuth] getProfile error:', error.message);
+    _profile = data || null;
     return _profile;
   }
 
   async function getRole() {
+    if (_role) return _role;
+    // Essayer d'abord via le profil
     const profile = await getProfile();
-    return profile?.role || null;
+    if (profile?.role) {
+      _role = profile.role;
+      return _role;
+    }
+    // Fallback : via RPC
+    try {
+      const { data } = await getClient().rpc('get_my_candy_role');
+      _role = data || null;
+      return _role;
+    } catch(e) {
+      console.warn('[CandyAuth] getRole RPC error:', e.message);
+      return null;
+    }
   }
 
-  // Vérifier une permission
   async function can(permission) {
     const role  = await getRole();
     const perms = CANDY_PERMISSIONS[role] || [];
     return perms.includes(permission);
   }
 
-  // Vérifier si le rôle est au moins le niveau demandé
   async function hasRole(...roles) {
     const role = await getRole();
     return roles.includes(role);
   }
 
-  // Connexion
   async function login(email, password) {
     const { data, error } = await getClient().auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     _user    = data.user;
     _profile = null;
-    // Logger la connexion (RGPD)
+    _role    = null;
     try {
       await getClient().rpc('log_action', {
-        p_action: 'LOGIN',
-        p_details: { email }
+        p_action: 'LOGIN', p_details: { email }
       });
     } catch(e) { /* non bloquant */ }
     return data;
   }
 
-  // Déconnexion
   async function logout() {
     try {
       await getClient().rpc('log_action', { p_action: 'LOGOUT' });
@@ -87,10 +97,10 @@ const CandyAuth = (() => {
     await getClient().auth.signOut();
     _user    = null;
     _profile = null;
+    _role    = null;
     window.location.href = 'login.html';
   }
 
-  // Garde : redirige vers login si non connecté
   async function requireAuth() {
     const session = await getSession();
     if (!session) {
@@ -100,7 +110,6 @@ const CandyAuth = (() => {
     return true;
   }
 
-  // Garde : redirige si rôle insuffisant
   async function requireRole(...roles) {
     const ok = await requireAuth();
     if (!ok) return false;
@@ -112,18 +121,17 @@ const CandyAuth = (() => {
     return true;
   }
 
-  // Rediriger vers la bonne page selon le rôle
   async function redirectByRole() {
     const role = await getRole();
     const page = CANDY_REDIRECT[role] || 'login.html';
     window.location.href = page;
   }
 
-  // Écouter les changements de session
   function onAuthChange(callback) {
     getClient().auth.onAuthStateChange((event, session) => {
       _user    = session?.user || null;
       _profile = null;
+      _role    = null;
       callback(event, session);
     });
   }

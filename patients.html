@@ -241,17 +241,22 @@ let currentWeekOffset = 0;
   const ok = await CandyAuth.requireAuth();
   if (!ok) return;
 
+  // Charger le rôle — avec retry si le profil n'est pas encore prêt
+  let retries = 0;
+  while (!userRole && retries < 3) {
+    userRole = await CandyAuth.getRole();
+    if (!userRole) await new Promise(r => setTimeout(r, 500));
+    retries++;
+  }
+
   const profile = await CandyAuth.getProfile();
-  userRole      = await CandyAuth.getRole();
 
   // Nom dans la nav
   document.getElementById('nav-prenom').textContent =
     profile?.prenom ? `${profile.prenom} ${profile.nom || ''}`.trim() : profile?.email || '—';
 
-  // Bouton admin visible pour admin_crm
+  // Redirection admin_crm → admin.html
   if (userRole === 'admin_crm') {
-    document.getElementById('btn-admin').style.display = '';
-    // admin_crm → rediriger vers admin.html
     window.location.href = 'admin.html';
     return;
   }

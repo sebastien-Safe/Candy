@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>C@NDY — Management de projet</title>
-<link rel="icon" type="image/svg+xml" href="/Candy/favicon.svg">
-  <link rel="shortcut icon" href="/Candy/favicon.svg">
-  <link rel="apple-touch-icon" href="/Candy/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="shortcut icon" href="favicon.svg">
+  <link rel="apple-touch-icon" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="auth.js"></script>
 <style>
 :root{--rose:#F2D7D9;--rose-deep:#E8BFC2;--rose-light:#FBF0F1;--cerise:#C4717A;--cerise-2:#A85860;--blanc:#FEFAF9;--ardoise:#3D2B2D;--ardoise-2:#5C3F42;--mut:#8C6A6D;--sauge:#7A9E7E;--sauge-2:#5C7D60;--alert:#C0392B;--gold:#B8960C;--line:rgba(61,43,45,.1);--ff:'DM Serif Display',serif;--fb:'Inter',sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -115,24 +117,17 @@ nav{position:sticky;top:0;z-index:100;background:rgba(254,250,249,.92);backdrop-
 <body>
 
 <!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-box">
-    <h2>C@NDY — Accès restreint</h2>
-    <p>Espace administrateur S@FE uniquement</p>
-    <input id="l-email" type="email" placeholder="Email administrateur" autocomplete="email">
-    <input id="l-pass" type="password" placeholder="Mot de passe" autocomplete="current-password">
-    <button class="btn-login" onclick="doLogin()">Se connecter</button>
-    <div class="login-err" id="l-err"></div>
+
   </div>
 </div>
 
 <!-- APP -->
 <div id="app" style="display:none">
 <nav>
-  <a href="/Candy/index.html" class="nav-brand">C<span>@</span>NDY<span class="nav-badge">Admin</span></a>
+  <a href="index.html" class="nav-brand">C<span>@</span>NDY<span class="nav-badge">Admin</span></a>
   <div class="nav-right">
-    <a href="/Candy/index.html" class="nav-link">← Vitrine</a>
-    <a href="/Candy/patients.html" class="nav-link">Démo</a>
+    <a href="index.html" class="nav-link">← Vitrine</a>
+    <a href="patients.html" class="nav-link">Démo</a>
     <a href="/index.html" class="nav-link">CRM S@FE</a>
     <button onclick="doLogout()" style="font-size:.78rem;color:var(--mut);background:none;border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer">Déconnexion</button>
   </div>
@@ -518,11 +513,15 @@ function saveTask(){
 
 // ── INIT ──
 (async()=>{
-  const {data:{session}} = await sb.auth.getSession();
-  if(session){
-    const {data:profile} = await sb.from('profiles').select('is_admin').eq('id',session.user.id).single();
-    if(profile?.is_admin) showApp(); else document.getElementById('login-screen').style.display='flex';
-  }
+  const ok = await CandyAuth.requireRole('medecin','admin_crm');
+  if(!ok) return;
+  const sb      = CandyAuth.getClient();
+  const profile = await CandyAuth.getProfile();
+  const role    = await CandyAuth.getRole();
+  // Afficher le nom dans la nav si présent
+  const navUser = document.getElementById('nav-user-name');
+  if(navUser) navUser.textContent = profile?.prenom || profile?.email || '';
+  showApp();
 })();
 </script>
 </body>

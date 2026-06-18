@@ -1,15 +1,15 @@
 // ================================================================
-// C@NDY — Service d'authentification
+// C@NDY — Service d'authentification v2
 // Autonome — aucune dépendance avec le CRM S@FE
+// RGPD renforcé — isolation complète par rôle
 // ================================================================
 
 const CandyAuth = (() => {
 
-  let _sb   = null;
-  let _user = null;
+  let _sb      = null;
+  let _user    = null;
   let _profile = null;
 
-  // ── Initialisation ──
   function init() {
     _sb = window.supabase.createClient(CANDY_SUPABASE_URL, CANDY_SUPABASE_KEY);
     return _sb;
@@ -20,13 +20,11 @@ const CandyAuth = (() => {
     return _sb;
   }
 
-  // ── Session courante ──
   async function getSession() {
     const { data: { session } } = await getClient().auth.getSession();
     return session;
   }
 
-  // ── Utilisateur connecté ──
   async function getUser() {
     if (_user) return _user;
     const session = await getSession();
@@ -34,7 +32,6 @@ const CandyAuth = (() => {
     return _user;
   }
 
-  // ── Profil complet ──
   async function getProfile() {
     if (_profile) return _profile;
     const user = await getUser();
@@ -48,57 +45,81 @@ const CandyAuth = (() => {
     return _profile;
   }
 
-  // ── Rôle ──
   async function getRole() {
     const profile = await getProfile();
-    return profile?.role || 'secretaire';
+    return profile?.role || null;
   }
 
-  // ── Vérifier une permission ──
+  // Vérifier une permission
   async function can(permission) {
     const role  = await getRole();
     const perms = CANDY_PERMISSIONS[role] || [];
     return perms.includes(permission);
   }
 
-  // ── Connexion ──
+  // Vérifier si le rôle est au moins le niveau demandé
+  async function hasRole(...roles) {
+    const role = await getRole();
+    return roles.includes(role);
+  }
+
+  // Connexion
   async function login(email, password) {
     const { data, error } = await getClient().auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
     _user    = data.user;
-    _profile = null; // reset cache
+    _profile = null;
+    // Logger la connexion (RGPD)
+    try {
+      await getClient().rpc('log_action', {
+        p_action: 'LOGIN',
+        p_details: { email }
+      });
+    } catch(e) { /* non bloquant */ }
     return data;
   }
 
-  // ── Déconnexion ──
+  // Déconnexion
   async function logout() {
+    try {
+      await getClient().rpc('log_action', { p_action: 'LOGOUT' });
+    } catch(e) { /* non bloquant */ }
     await getClient().auth.signOut();
     _user    = null;
     _profile = null;
-    window.location.href = '/candy/login.html';
+    window.location.href = 'login.html';
   }
 
-  // ── Garde : redirige vers login si non connecté ──
+  // Garde : redirige vers login si non connecté
   async function requireAuth() {
     const session = await getSession();
     if (!session) {
-      window.location.href = '/candy/login.html';
+      window.location.href = 'login.html';
       return false;
     }
     return true;
   }
 
-  // ── Garde : redirige si rôle insuffisant ──
+  // Garde : redirige si rôle insuffisant
   async function requireRole(...roles) {
+    const ok = await requireAuth();
+    if (!ok) return false;
     const role = await getRole();
-    if (!roles.includes(role)) {
-      window.location.href = '/candy/login.html?error=permission';
+    if (!role || !roles.includes(role)) {
+      window.location.href = 'login.html?error=permission';
       return false;
     }
     return true;
   }
 
-  // ── Écouter les changements de session ──
+  // Rediriger vers la bonne page selon le rôle
+  async function redirectByRole() {
+    const role = await getRole();
+    const page = CANDY_REDIRECT[role] || 'login.html';
+    window.location.href = page;
+  }
+
+  // Écouter les changements de session
   function onAuthChange(callback) {
     getClient().auth.onAuthStateChange((event, session) => {
       _user    = session?.user || null;
@@ -108,18 +129,9 @@ const CandyAuth = (() => {
   }
 
   return {
-    init,
-    getClient,
-    getSession,
-    getUser,
-    getProfile,
-    getRole,
-    can,
-    login,
-    logout,
-    requireAuth,
-    requireRole,
-    onAuthChange,
+    init, getClient, getSession, getUser, getProfile,
+    getRole, can, hasRole, login, logout,
+    requireAuth, requireRole, redirectByRole, onAuthChange,
   };
 
 })();

@@ -284,19 +284,30 @@ function showView(name, btn) {
 
 // ── CHARGER LES PATIENTS ──
 async function chargerPatients() {
-  const sb = CandyAuth.getClient();
+  const sb   = CandyAuth.getClient();
+  // S'assurer que userRole est chargé
+  const role = userRole || await CandyAuth.getRole();
+
+  // Construire la requête — pas de filtre actif qui pourrait bloquer
   let query = sb.from('patients')
     .select('id,nom,prenom,date_naissance,sexe,groupe_sanguin,allergies,is_demo,telephone,ville')
-    .eq('actif', true)
     .order('nom');
 
-  // medecin_demo : uniquement les patients démo (RLS gère aussi, double sécurité)
-  if (userRole === 'medecin_demo') {
+  // medecin_demo : uniquement les patients démo
+  // La RLS fait déjà le filtrage, on ajoute le filtre JS par sécurité
+  if (role === 'medecin_demo') {
     query = query.eq('is_demo', true);
   }
 
   const { data, error } = await query;
-  if (error) { toast('Erreur de chargement', 'err'); return; }
+
+  if (error) {
+    console.error('[C@NDY] chargerPatients error:', error);
+    document.getElementById('patients-list').innerHTML =
+      '<div class="empty-state"><div class="ico">⚠️</div>' +
+      '<p>Erreur : ' + error.message + '<br>Rôle détecté : ' + (role || 'null') + '</p></div>';
+    return;
+  }
 
   currentPatients = data || [];
   renderPatients(currentPatients);

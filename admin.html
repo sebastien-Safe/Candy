@@ -299,6 +299,34 @@ tr:hover td{background:rgba(61,43,45,.02)}
   </div>
 </div>
 
+<!-- MODALE RÉINITIALISER MOT DE PASSE -->
+<div class="modal" id="modal-reset-pwd">
+  <div class="modal-box">
+    <div class="modal-title">🔑 Réinitialiser le mot de passe</div>
+    <div class="msg-error" id="reset-error"></div>
+    <input type="hidden" id="reset-user-id">
+    <div style="margin-bottom:14px;font-size:.85rem;color:var(--mut)">
+      Utilisateur : <strong id="reset-user-name" style="color:var(--ardoise)">—</strong><br>
+      <span id="reset-user-email" style="font-size:.8rem">—</span>
+    </div>
+    <div class="field">
+      <label>Nouveau mot de passe</label>
+      <div style="display:flex;gap:8px">
+        <input id="reset-password" type="text" placeholder="Minimum 8 caractères" style="flex:1">
+        <button class="btn-sm" onclick="genResetPassword()" style="flex-shrink:0;padding:6px 10px">🔀</button>
+      </div>
+    </div>
+    <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);
+      border-radius:8px;padding:10px 12px;font-size:.78rem;color:#92400e;margin-bottom:14px">
+      ⚠️ Réservé aux comptes médecin et secrétaire. L'ancien mot de passe sera immédiatement invalidé.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-reset-pwd')">Annuler</button>
+      <button class="btn-save" id="btn-reset-pwd" onclick="confirmerResetPwd()">Réinitialiser</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── INIT ──
 (async () => {
@@ -375,6 +403,10 @@ function renderUsers() {
             <button class="btn-sm" onclick="openModalRole('${u.id}','${esc(u.prenom||'')} ${esc(u.nom||'')}','${u.role}')">
               Modifier rôle
             </button>
+            ${['medecin','secretaire'].includes(u.role) ? `
+            <button class="btn-sm" onclick="openModalResetPwd('${u.id}','${esc(u.prenom||'')} ${esc(u.nom||'')}','${esc(u.email)}')">
+              🔑 Réinit. MDP
+            </button>` : ''}
             <button class="btn-sm ${u.actif ? 'danger' : ''}"
               onclick="toggleActif('${u.id}',${u.actif})">
               ${u.actif ? 'Désactiver' : 'Réactiver'}
@@ -486,6 +518,77 @@ async function creerCompte() {
     errEl.classList.add('show');
   } finally {
     btn.disabled = false; btn.textContent = 'Créer le compte';
+  }
+}
+
+// ── RÉINITIALISER MOT DE PASSE (medecin + secretaire uniquement) ──
+function openModalResetPwd(userId, userName, userEmail) {
+  document.getElementById('reset-user-id').value      = userId;
+  document.getElementById('reset-user-name').textContent  = userName || '—';
+  document.getElementById('reset-user-email').textContent = userEmail || '';
+  document.getElementById('reset-password').value     = '';
+  document.getElementById('reset-error').classList.remove('show');
+  document.getElementById('modal-reset-pwd').classList.add('show');
+}
+
+function genResetPassword() {
+  const chars = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$';
+  let pwd = '';
+  for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('reset-password').value = pwd;
+}
+
+async function confirmerResetPwd() {
+  const userId   = document.getElementById('reset-user-id').value;
+  const password = document.getElementById('reset-password').value;
+  const errEl    = document.getElementById('reset-error');
+  const btn      = document.getElementById('btn-reset-pwd');
+
+  errEl.classList.remove('show');
+  if (!password || password.length < 8) {
+    errEl.textContent = 'Mot de passe trop court (8 caractères min).';
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Réinitialisation…';
+
+  try {
+    const session     = await CandyAuth.getSession();
+    const accessToken = session?.access_token;
+
+    const resp = await fetch(`${CANDY_SUPABASE_URL}/functions/v1/candy-admin-create-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+      body: JSON.stringify({ action: 'reset_password', user_id: userId, new_password: password }),
+    });
+    const result = await resp.json();
+
+    if (!resp.ok || result.error) {
+      const errMap = {
+        reset_not_allowed_for_role: "Réinitialisation non autorisée pour ce rôle.",
+        user_not_found: "Utilisateur introuvable.",
+        password_too_short: "Mot de passe trop court.",
+      };
+      throw new Error(errMap[result.error] || result.error || 'Erreur');
+    }
+
+    const email = document.getElementById('reset-user-email').textContent;
+    closeModal('modal-reset-pwd');
+    toast('✅ Mot de passe réinitialisé', 'ok');
+    await chargerAudit();
+
+    setTimeout(() => {
+      if (confirm(`Mot de passe réinitialisé.\n\nE-mail : ${email}\nNouveau mot de passe : ${password}\n\nCopier dans le presse-papiers ?`)) {
+        navigator.clipboard.writeText(`E-mail : ${email}\nMot de passe : ${password}`);
+      }
+    }, 300);
+
+  } catch(e) {
+    errEl.textContent = 'Erreur : ' + e.message;
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Réinitialiser';
   }
 }
 

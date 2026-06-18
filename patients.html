@@ -315,7 +315,7 @@ async function chargerPatients() {
 
 function renderPatients(patients) {
   const container = document.getElementById('patients-list');
-  if (!patients.length) {
+  if (!patients || !patients.length) {
     container.innerHTML = `<div class="empty-state">
       <div class="ico">👥</div>
       <p>Aucun patient trouvé.</p>
@@ -328,7 +328,13 @@ function renderPatients(patients) {
     const age       = p.date_naissance
       ? Math.floor((Date.now() - new Date(p.date_naissance)) / 31557600000) + ' ans'
       : '—';
-    const allergies = JSON.parse(p.allergies || '[]');
+    // Parser allergies en sécurité — peut être object ou string
+    let allergies = [];
+    try {
+      allergies = Array.isArray(p.allergies)
+        ? p.allergies
+        : JSON.parse(p.allergies || '[]');
+    } catch(e) { allergies = []; }
     const chips     = allergies.slice(0,2).map(a =>
       `<span class="chip aller">⚠️ ${a.nom}</span>`
     ).join('') + (allergies.length > 2 ? `<span class="chip">+${allergies.length-2}</span>` : '');
@@ -383,7 +389,7 @@ async function genererAgenda() {
   // Charger les RDV de la semaine
   const sb  = CandyAuth.getClient();
   const { data: rdvs } = await sb.from('agenda')
-    .select('id,date_rdv,titre,type_rdv,patient_id,patients(nom,prenom)')
+    .select('id,date_rdv,titre,type_rdv,patient_id')
     .gte('date_rdv', lundi.toISOString())
     .lte('date_rdv', new Date(vendredi.getTime() + 86399000).toISOString())
     .order('date_rdv');
@@ -411,7 +417,7 @@ async function genererAgenda() {
         return rd.toISOString().slice(0,10) === dateStr && rd.getHours() === hNum;
       });
       if (rdv) {
-        const nom = rdv.patients ? `${rdv.patients.nom} ${rdv.patients.prenom[0]}.` : rdv.titre;
+        const nom = rdv.titre || '—';
         html += `<div class="slot"><div class="slot-filled">${nom}</div></div>`;
       } else {
         html += '<div class="slot"></div>';

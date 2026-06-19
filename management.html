@@ -8,6 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="shortcut icon" href="favicon.svg">
   <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#C4717A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -111,7 +113,19 @@ nav{position:sticky;top:0;z-index:100;background:rgba(254,250,249,.92);backdrop-
 .notes-area{width:100%;background:var(--rose-light);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--fb);font-size:.85rem;color:var(--ardoise);resize:vertical;min-height:120px;outline:none;line-height:1.6}
 .notes-area:focus{border-color:var(--cerise)}
 .notes-saved{font-size:.72rem;color:var(--sauge-2);margin-top:6px;display:none}
-@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.phases{grid-template-columns:1fr}.task-item{grid-template-columns:24px 1fr}.task-actions{display:none}}
+@media(max-width:700px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .phases{grid-template-columns:1fr}
+  .task-item{grid-template-columns:24px 1fr;grid-template-rows:auto auto;padding:12px 14px}
+  .task-actions{grid-column:2;display:flex;justify-content:flex-end;margin-top:6px;gap:4px}
+  .task-btn{padding:5px 12px;font-size:.75rem;min-height:36px}
+  .field input,.field select,.field textarea{font-size:1rem}
+  .login-box input{font-size:1rem}
+  .page{padding:20px 14px 80px}
+  nav{padding:0 14px}
+  .nav-right a,.nav-link{display:none}
+  .modal-box{padding:20px 16px}
+}
 </style>
 </head>
 <body>

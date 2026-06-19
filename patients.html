@@ -7,6 +7,8 @@
 <title>C@NDY — Patients</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C4717A">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="auth.js"></script>
@@ -147,10 +149,30 @@ nav{
 .empty-state .ico{font-size:2.5rem;margin-bottom:12px}
 .empty-state p{font-size:.88rem;line-height:1.6}
 
+/* ── BOTTOM NAV (mobile) ── */
+.bottom-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(254,250,249,.96);backdrop-filter:blur(12px);
+  border-top:1px solid var(--line);height:62px;padding:0 8px;
+  justify-content:space-around;align-items:center;
+}
+.bni{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  flex:1;padding:8px 4px;border:none;background:none;cursor:pointer;
+  color:var(--mut);font-family:var(--fb);font-size:.62rem;font-weight:600;
+  letter-spacing:.03em;min-height:44px;justify-content:center;
+  border-top:2px solid transparent;transition:color .18s;
+}
+.bni.active{color:var(--cerise);border-top-color:var(--cerise)}
+.bni-ico{font-size:1.25rem;line-height:1}
+
 @media(max-width:768px){
-  .page{grid-template-columns:1fr}
+  .page{grid-template-columns:1fr;padding-bottom:82px}
   .sidebar{display:none}
   nav{padding:0 16px}
+  .bottom-nav{display:flex}
+  .toast{bottom:74px}
+  .search-input{font-size:1rem}
 }
 </style>
 </head>
@@ -175,10 +197,10 @@ nav{
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-section">Navigation</div>
-    <button class="sidebar-item active" onclick="showView('patients',this)">
+    <button class="sidebar-item active" onclick="showView('patients',this,'bni-patients')">
       <span class="ico">👥</span> Patients
     </button>
-    <button class="sidebar-item" id="btn-agenda-nav" onclick="showView('agenda',this)">
+    <button class="sidebar-item" id="btn-agenda-nav" onclick="showView('agenda',this,'bni-agenda')">
       <span class="ico">📆</span> Agenda
     </button>
     <div class="bloc-note-wrap" id="bloc-note-wrap" style="display:none">
@@ -228,6 +250,16 @@ nav{
   </main>
 </div>
 
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" aria-label="Navigation mobile">
+  <button class="bni active" id="bni-patients" onclick="showView('patients',null,'bni-patients')">
+    <span class="bni-ico">👥</span>Patients
+  </button>
+  <button class="bni" id="bni-agenda" onclick="showView('agenda',null,'bni-agenda')">
+    <span class="bni-ico">📆</span>Agenda
+  </button>
+</nav>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -274,11 +306,13 @@ let currentWeekOffset = 0;
 })();
 
 // ── NAVIGATION ──
-function showView(name, btn) {
+function showView(name, btn, bniId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bni').forEach(b => b.classList.remove('active'));
   document.getElementById('view-' + name)?.classList.add('active');
   if (btn) btn.classList.add('active');
+  if (bniId) document.getElementById(bniId)?.classList.add('active');
   if (name === 'agenda') genererAgenda();
 }
 

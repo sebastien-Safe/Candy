@@ -347,6 +347,20 @@ async function chargerPatients() {
   renderPatients(currentPatients);
 }
 
+function patientUrl(p) {
+  if (!p.is_demo) return `dossier.html?id=${p.id}`;
+  const n  = (p.nom    || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+  const pr = (p.prenom || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+  const map = {
+    'dupont-marie':   'patient-1-dupont-marie.html',
+    'bernard-luc':    'patient-2-bernard-luc.html',
+    'lefevre-sophie': 'patient-3-lefevre-sophie.html',
+    'moreau-paul':    'patient-4-moreau-paul.html',
+    'petit-isabelle': 'patient-5-petit-isabelle.html',
+  };
+  return map[`${n}-${pr}`] || `dossier.html?id=${p.id}`;
+}
+
 function renderPatients(patients) {
   const container = document.getElementById('patients-list');
   if (!patients || !patients.length) {
@@ -374,7 +388,7 @@ function renderPatients(patients) {
     ).join('') + (allergies.length > 2 ? `<span class="chip">+${allergies.length-2}</span>` : '');
 
     return `<a class="patient-card${p.is_demo ? ' demo-card' : ''}"
-        href="dossier.html?id=${p.id}">
+        href="${patientUrl(p)}">
       <div class="card-head">
         <div class="card-avatar">${initiales}</div>
         <div>

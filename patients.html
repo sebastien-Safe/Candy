@@ -299,8 +299,23 @@ function renderDemoPatients() {
 (async () => {
   // Mode démo public : pas d'auth Supabase
   if (localStorage.getItem('candy_demo_public') === '1') {
-    document.getElementById('nav-prenom').textContent = 'Médecin Démo';
+    const _demoRole = localStorage.getItem('candy_demo_active_role') || 'medecin';
+    const _demoLabels = { medecin:'Dr. Démo', infirmier:'Infirmier Démo', secretaire:'Secrétaire Démo' };
+    document.getElementById('nav-prenom').textContent = _demoLabels[_demoRole] || 'Démo';
     renderDemoPatients();
+    if (_demoRole === 'secretaire') {
+      setTimeout(() => showView('agenda', document.getElementById('btn-agenda-nav'), 'bni-agenda'), 0);
+    }
+    document.addEventListener('candy:demo-role-changed', (e) => {
+      const r = e.detail.role;
+      document.getElementById('nav-prenom').textContent = _demoLabels[r] || 'Démo';
+      if (r === 'secretaire') {
+        showView('agenda', document.getElementById('btn-agenda-nav'), 'bni-agenda');
+      } else {
+        const btn = document.querySelector('.sidebar-item[onclick*="\'patients\'"]');
+        showView('patients', btn, 'bni-patients');
+      }
+    });
     return;
   }
 

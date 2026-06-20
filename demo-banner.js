@@ -266,8 +266,8 @@ function _cleanTour() {
 
   const PROFILES = [
     { id:'medecin',    label:'👨‍⚕️ Médecin',   available: true },
-    { id:'infirmier',  label:'👩‍⚕️ Infirmier',  available: false },
-    { id:'secretaire', label:'👩‍💼 Secrétaire', available: false },
+    { id:'infirmier',  label:'👩‍⚕️ Infirmier',  available: true },
+    { id:'secretaire', label:'👩‍💼 Secrétaire', available: true },
   ];
 
   function getActiveRole() { return localStorage.getItem(DEMO_ROLE_KEY) || 'medecin'; }
@@ -275,6 +275,46 @@ function _cleanTour() {
     localStorage.setItem(DEMO_ROLE_KEY, role);
     document.dispatchEvent(new CustomEvent('candy:demo-role-changed', { detail: { role } }));
     updateBannerUI();
+    applyRoleToPage(role);
+  }
+
+  function applyRoleToPage(role) {
+    const path = window.location.pathname;
+    const isPatientPage  = /patient-\d/.test(path);
+    const isPatientsPage = path.endsWith('patients.html') || path.endsWith('index.html') || path === '/';
+
+    if (isPatientPage) {
+      if (role === 'secretaire') {
+        window.location.href = 'patients.html';
+        return;
+      }
+      const TAB_IDS_HIDDEN_INFIRMIER = ['ordonnances', 'documents'];
+      TAB_IDS_HIDDEN_INFIRMIER.forEach(id => {
+        const btn = document.getElementById('tab-btn-' + id);
+        const pane = document.getElementById('tab-' + id);
+        if (!btn) return;
+        if (role === 'infirmier') {
+          btn.style.display = 'none';
+          if (pane && pane.classList.contains('active')) {
+            pane.classList.remove('active');
+            const constBtn = document.getElementById('tab-btn-constantes');
+            if (constBtn && typeof showTab === 'function') showTab('constantes', constBtn);
+            else if (constBtn) constBtn.click();
+          }
+        } else {
+          btn.style.display = '';
+        }
+      });
+    }
+
+    if (isPatientsPage) {
+      if (role === 'secretaire' && typeof showView === 'function') {
+        showView('agenda', document.getElementById('btn-agenda-nav'), 'bni-agenda');
+      } else if (typeof showView === 'function') {
+        const patientsBtn = document.querySelector('.sidebar-item[onclick*="\'patients\'"]');
+        showView('patients', patientsBtn, 'bni-patients');
+      }
+    }
   }
 
   function updateBannerUI() {
@@ -349,6 +389,7 @@ function _cleanTour() {
 
     updateBannerUI();
     document.dispatchEvent(new CustomEvent('candy:demo-role-changed', { detail: { role: getActiveRole() } }));
+    applyRoleToPage(getActiveRole());
   }
 
   if (document.readyState === 'loading') {

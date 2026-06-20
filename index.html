@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>C@NDY &mdash; Démonstration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rose:#F2D7D9;--rose-deep:#E8BFC2;--rose-light:#FBF0F1;
+  --cerise:#C4717A;--cerise-2:#A85860;
+  --blanc:#FEFAF9;--ardoise:#3D2B2D;--ardoise-2:#5C3F42;
+  --mut:#8C6A6D;--sauge:#5C7D60;--line:rgba(61,43,45,.1);
+  --ff-disp:"DM Serif Display",serif;--fb:"Inter",sans-serif
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--rose-light);color:var(--ardoise);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+nav{background:rgba(254,250,249,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{font-family:var(--ff-disp);font-size:1.25rem;color:var(--ardoise);text-decoration:none}
+.nav-badge{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--cerise);color:#fff;padding:3px 8px;border-radius:999px;margin-left:6px}
+.nav-login{font-size:.82rem;color:var(--mut);text-decoration:none;border:1px solid var(--line);padding:6px 14px;border-radius:7px;transition:all .18s}
+.nav-login:hover{border-color:var(--cerise);color:var(--cerise)}
+
+.hero{max-width:680px;margin:72px auto 0;padding:0 24px;text-align:center}
+.hero-title{font-family:var(--ff-disp);font-size:2.6rem;color:var(--ardoise);line-height:1.15;margin-bottom:16px}
+.hero-title em{color:var(--cerise);font-style:normal}
+.hero-sub{font-size:1rem;color:var(--mut);max-width:480px;margin:0 auto 52px;line-height:1.7}
+
+.roles{max-width:860px;margin:0 auto 72px;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+
+.role-card{
+  background:var(--blanc);border:1.5px solid var(--line);border-radius:18px;padding:28px 24px 24px;
+  cursor:pointer;transition:all .22s;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:12px;
+}
+.role-card:hover{border-color:var(--cerise);box-shadow:0 8px 28px rgba(196,113,122,.15);transform:translateY(-2px)}
+.role-card:active{transform:translateY(0)}
+.role-card.soon{cursor:default;opacity:.55}
+.role-card.soon:hover{border-color:var(--line);box-shadow:none;transform:none}
+
+.role-icon{font-size:2.2rem;line-height:1}
+.role-name{font-family:var(--ff-disp);font-size:1.3rem;color:var(--ardoise)}
+.role-desc{font-size:.83rem;color:var(--mut);line-height:1.6;flex:1}
+.role-features{display:flex;flex-direction:column;gap:5px;margin-top:4px}
+.role-feat{font-size:.75rem;color:var(--ardoise-2);display:flex;align-items:flex-start;gap:6px}
+.role-feat::before{content:"✓";color:var(--sauge);font-weight:700;flex-shrink:0;margin-top:1px}
+
+.btn-role{
+  margin-top:8px;font-family:var(--fb);font-size:.88rem;font-weight:600;
+  padding:11px 20px;border-radius:10px;cursor:pointer;transition:all .2s;
+  border:none;background:var(--cerise);color:#fff;align-self:flex-start;
+}
+.btn-role:hover{background:var(--cerise-2)}
+.role-card.soon .btn-role{background:var(--line);color:var(--mut);cursor:default}
+.soon-tag{position:absolute;top:14px;right:14px;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--rose);color:var(--cerise-2);padding:3px 8px;border-radius:6px}
+
+.alert-demo{max-width:560px;margin:0 auto 56px;background:rgba(92,125,96,.07);border:1px solid rgba(92,125,96,.22);border-radius:10px;padding:13px 18px;font-size:.82rem;color:var(--sauge);text-align:center;line-height:1.6}
+
+footer{text-align:center;padding:28px 24px;font-size:.76rem;color:var(--mut);border-top:1px solid var(--line)}
+footer a{color:var(--cerise);text-decoration:none}
+
+@media(max-width:600px){
+  .hero-title{font-size:2rem}
+  .hero{margin-top:44px}
+  .roles{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">C<span style="color:var(--cerise)">@</span>NDY<span class="nav-badge">Démo</span></span>
+  <a href="login.html" class="nav-login">Connexion professionnelle</a>
+</nav>
+
+<div class="hero">
+  <h1 class="hero-title">Bienvenue dans <em>C@NDY</em></h1>
+  <p class="hero-sub">Choisissez votre profil pour explorer l'application. Aucun compte requis — toutes les données sont fictives.</p>
+</div>
+
+<div class="roles">
+
+  <div class="role-card" onclick="startAs('medecin')">
+    <div class="role-icon">👨‍⚕️</div>
+    <div class="role-name">Médecin</div>
+    <div class="role-desc">Accès complet au dossier patient avec toutes les fonctionnalités cliniques.</div>
+    <div class="role-features">
+      <div class="role-feat">Dossier patient complet</div>
+      <div class="role-feat">Ordonnances &amp; sécurité médicamenteuse</div>
+      <div class="role-feat">Dictée vocale structurée</div>
+      <div class="role-feat">Constantes &amp; graphiques</div>
+      <div class="role-feat">Documents médicaux (ECG, biologie…)</div>
+    </div>
+    <button class="btn-role">Démarrer la démo →</button>
+  </div>
+
+  <div class="role-card" onclick="startAs('infirmier')">
+    <div class="role-icon">👩‍⚕️</div>
+    <div class="role-name">Infirmier</div>
+    <div class="role-desc">Vue orientée soins : constantes vitales, médicaments et notes de suivi.</div>
+    <div class="role-features">
+      <div class="role-feat">Constantes vitales &amp; graphiques</div>
+      <div class="role-feat">Médicaments en cours</div>
+      <div class="role-feat">Notes de soins &amp; dictée vocale</div>
+      <div class="role-feat">Informations patient</div>
+    </div>
+    <button class="btn-role">Démarrer la démo →</button>
+  </div>
+
+  <div class="role-card" onclick="startAs('secretaire')">
+    <div class="role-icon">👩‍💼</div>
+    <div class="role-name">Secrétaire</div>
+    <div class="role-desc">Vue administrative : liste des patients et agenda de la semaine.</div>
+    <div class="role-features">
+      <div class="role-feat">Liste des patients</div>
+      <div class="role-feat">Agenda de la semaine</div>
+      <div class="role-feat">Recherche et filtres</div>
+    </div>
+    <button class="btn-role">Démarrer la démo →</button>
+  </div>
+
+</div>
+
+<div class="alert-demo">
+  &#9989; <strong>Données fictives</strong> — Aucune information médicale réelle.
+  Toutes les saisies restent dans votre navigateur et sont effaçables en un clic depuis le bandeau démo.
+</div>
+
+<footer>
+  C@NDY &mdash; Logiciel médical &mdash; Démonstration &mdash; Données fictives uniquement<br>
+  <a href="login.html">Connexion professionnelle</a>
+</footer>
+
+<script>
+function startAs(role) {
+  localStorage.setItem('candy_demo_public', '1');
+  localStorage.setItem('candy_demo_active_role', role);
+  const dest = {
+    medecin:    'patients.html',
+    infirmier:  'patients.html',
+    secretaire: 'patients.html',
+  };
+  window.location.href = dest[role] || 'patients.html';
+}
+</script>
+</body>
+</html>

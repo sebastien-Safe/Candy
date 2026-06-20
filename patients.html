@@ -387,8 +387,12 @@ function renderPatients(patients) {
       `<span class="chip aller">⚠️ ${a.nom}</span>`
     ).join('') + (allergies.length > 2 ? `<span class="chip">+${allergies.length-2}</span>` : '');
 
+    const n  = (p.nom    || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+    const pr = (p.prenom || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
+    const demoKey = `${n}-${pr}`;
+    const patientDataAttr = p.is_demo ? `data-patient="patient-${['dupont-marie','bernard-luc','lefevre-sophie','moreau-paul','petit-isabelle'].indexOf(demoKey)+1}"` : '';
     return `<a class="patient-card${p.is_demo ? ' demo-card' : ''}"
-        href="${patientUrl(p)}">
+        href="${patientUrl(p)}" ${patientDataAttr}>
       <div class="card-head">
         <div class="card-avatar">${initiales}</div>
         <div>
@@ -519,5 +523,7 @@ function toast(msg, type = '') {
   toast._t = setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
+<script src="demo-data.js"></script>
+<script src="demo-banner.js"></script>
 </body>
 </html>

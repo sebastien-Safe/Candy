@@ -348,5 +348,8 @@ initSuivi();
 if(!localStorage.getItem(OBK)){document.getElementById('ob').style.display='flex';localStorage.setItem(OBK,'1');}
 (function(){const c=document.getElementById('chart-const');if(!c||typeof Chart==='undefined')return;new Chart(c,{type:'line',data:{labels:['Jan','Fév','Mar','Avr','Mai','Jun'],datasets:[{label:'Poids (kg)',data:[58,58,57,58,58,58],borderColor:'#C4717A',backgroundColor:'rgba(196,113,122,.12)',tension:.35,pointRadius:3,yAxisID:'y'},{label:'SAT O₂ (%)',data:[99,99,99,100,99,99],borderColor:'#5C7D60',backgroundColor:'rgba(92,125,96,.12)',tension:.35,pointRadius:3,yAxisID:'y2'},{label:'IMC',data:[20.8,20.8,20.4,20.8,20.8,20.8],borderColor:'#7B68EE',backgroundColor:'rgba(123,104,238,.1)',tension:.35,pointRadius:3,borderDash:[4,3],yAxisID:'y'}]},options:{responsive:true,animation:{duration:600},interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10},padding:8}}},scales:{y:{position:'left',ticks:{font:{size:10}},grid:{color:'rgba(61,43,45,.06)'}},y2:{position:'right',ticks:{font:{size:10}},grid:{drawOnChartArea:false}}}}});})();
 </script>
+<script src="demo-data.js"></script>
+<script src="prescription-safety.js"></script>
+<script src="demo-banner.js"></script>
 </body>
 </html>

@@ -213,11 +213,12 @@ function toggleMed(i) {
   if (!wasOpen) card.classList.add('expanded');
 }
 
-// Auth check
+// Auth check (bypassé en mode démo public)
 (async () => {
-  const ok = await CandyAuth.requireAuth();
-  if (!ok) return;
-  // Afficher tous les médicaments si on vient d'un patient (contexte disponible)
+  if (localStorage.getItem('candy_demo_public') !== '1') {
+    const ok = await CandyAuth.requireAuth();
+    if (!ok) return;
+  }
   if (_patientId) renderMeds(DEMO_MEDICATIONS);
 })();
 </script>

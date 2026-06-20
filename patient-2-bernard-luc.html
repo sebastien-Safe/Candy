@@ -305,15 +305,20 @@ if(d)d.textContent=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'l
 // Notes de suivi — Supabase C@NDY
 let _candyPatientId = null;
 
+const _DEMO_NOTE_KEY = 'candy_demo_notes_patient-2';
+
 async function initSuivi() {
+  if (localStorage.getItem('candy_demo_public') === '1') {
+    const ta = document.getElementById('suivi-notes');
+    if (ta) ta.value = localStorage.getItem(_DEMO_NOTE_KEY) || '';
+    return;
+  }
   const ok = await CandyAuth.requireAuth();
   if (!ok) return;
   const sb   = CandyAuth.getClient();
   const user = await CandyAuth.getUser();
-  // Patient démo n°2 (trié par nom)
   const { data: demos } = await sb.from('patients')
-    .select('id').eq('is_demo', true).order('nom')
-    .range(1, 1);
+    .select('id').eq('is_demo', true).order('nom').range(1, 1);
   _candyPatientId = demos?.[0]?.id || null;
   if (!_candyPatientId) return;
   const { data: note } = await sb.from('notes_suivi')
@@ -327,10 +332,16 @@ let _suiviTimer;
 async function saveSuivi() {
   clearTimeout(_suiviTimer);
   _suiviTimer = setTimeout(async () => {
-    if (!_candyPatientId) return;
-    const sb      = CandyAuth.getClient();
-    const user    = await CandyAuth.getUser();
     const contenu = document.getElementById('suivi-notes')?.value || '';
+    if (localStorage.getItem('candy_demo_public') === '1') {
+      localStorage.setItem(_DEMO_NOTE_KEY, contenu);
+      const s = document.getElementById('suivi-saved');
+      if (s) { s.style.display='inline'; setTimeout(()=>s.style.display='none',2000); }
+      return;
+    }
+    if (!_candyPatientId) return;
+    const sb   = CandyAuth.getClient();
+    const user = await CandyAuth.getUser();
     await sb.from('notes_suivi').upsert(
       { patient_id: _candyPatientId, auteur_id: user.id, contenu, updated_at: new Date().toISOString() },
       { onConflict: 'patient_id,auteur_id' }

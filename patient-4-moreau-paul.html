@@ -801,9 +801,13 @@ const ordoDateEl = document.getElementById('ordo-date-today');
 if (ordoDateEl) ordoDateEl.textContent = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
 
 // ── Init ──
-(async () => {
-  const ok = await CandyAuth.requireAuth();
-  if (!ok) return;
+// Attente chargement scripts externes (demo-data.js, prescription-safety.js, demo-banner.js)
+// avant d'appeler les fonctions qu'ils exposent.
+window.addEventListener('load', async () => {
+  if (localStorage.getItem('candy_demo_public') !== '1') {
+    const ok = await CandyAuth.requireAuth();
+    if (!ok) return;
+  }
   loadSuivi();
   renderConstantes();
   renderHistorique();
@@ -816,7 +820,7 @@ if (ordoDateEl) ordoDateEl.textContent = new Date().toLocaleDateString('fr-FR',{
     document.getElementById('ob').style.display = 'flex';
     localStorage.setItem(OBK, '1');
   }
-})();
+});
 </script>
 <script src="demo-data.js"></script>
 <script src="prescription-safety.js"></script>

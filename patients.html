@@ -269,7 +269,41 @@ let currentPatients = [];
 let userRole        = null;
 let currentWeekOffset = 0;
 
+// ── Patients statiques pour mode démo public (sans auth Supabase) ──
+const DEMO_PATIENTS_STATIC = [
+  { nom:'Dupont',  prenom:'Marie',   age:'74 ans', sexe:'F', groupe:'A+',  allergie:'',            ville:'Lyon',     file:'patient-1-dupont-marie.html',  demo:'patient-1' },
+  { nom:'Bernard', prenom:'Luc',     age:'45 ans', sexe:'M', groupe:'B+',  allergie:'',            ville:'Lyon',     file:'patient-2-bernard-luc.html',   demo:'patient-2' },
+  { nom:'Lefèvre', prenom:'Sophie',  age:'32 ans', sexe:'F', groupe:'O+',  allergie:'',            ville:'Grenoble', file:'patient-3-lefevre-sophie.html', demo:'patient-3' },
+  { nom:'Moreau',  prenom:'Paul',    age:'67 ans', sexe:'M', groupe:'O+',  allergie:'Pénicilline', ville:'Grenoble', file:'patient-4-moreau-paul.html',   demo:'patient-4', main:true },
+  { nom:'Petit',   prenom:'Isabelle',age:'58 ans', sexe:'F', groupe:'AB-', allergie:'',            ville:'Paris',    file:'patient-5-petit-isabelle.html', demo:'patient-5' },
+];
+
+function renderDemoPatients() {
+  document.getElementById('patients-list').innerHTML = DEMO_PATIENTS_STATIC.map(p => `
+    <a class="patient-card demo-card" href="${p.file}" data-patient="${p.demo}">
+      <div class="card-head">
+        <div class="card-avatar">${p.prenom[0]}${p.nom[0]}</div>
+        <div>
+          <div class="card-name">${p.nom}, ${p.prenom}</div>
+          <div class="card-meta">${p.age} &middot; ${p.sexe==='F'?'Femme':'Homme'} &middot; 🩸 ${p.groupe}</div>
+          <span class="demo-badge">Démo</span>${p.main ? ' <span class="demo-badge" style="background:rgba(196,113,122,.2);border-color:rgba(196,113,122,.3)">⭐ Principal</span>' : ''}
+        </div>
+      </div>
+      <div class="card-chips">
+        <span class="chip">📍 ${p.ville}</span>
+        ${p.allergie ? `<span class="chip aller">⚠️ ${p.allergie}</span>` : ''}
+      </div>
+    </a>`).join('');
+}
+
 (async () => {
+  // Mode démo public : pas d'auth Supabase
+  if (localStorage.getItem('candy_demo_public') === '1') {
+    document.getElementById('nav-prenom').textContent = 'Médecin Démo';
+    renderDemoPatients();
+    return;
+  }
+
   const ok = await CandyAuth.requireAuth();
   if (!ok) return;
 
@@ -300,7 +334,6 @@ let currentWeekOffset = 0;
     chargerBlocNote();
   }
 
-  // Masquer agenda pour secrétaire aussi (visible pour tous)
   await chargerPatients();
   genererAgenda();
 })();
@@ -390,7 +423,8 @@ function renderPatients(patients) {
     const n  = (p.nom    || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
     const pr = (p.prenom || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,'-');
     const demoKey = `${n}-${pr}`;
-    const patientDataAttr = p.is_demo ? `data-patient="patient-${['dupont-marie','bernard-luc','lefevre-sophie','moreau-paul','petit-isabelle'].indexOf(demoKey)+1}"` : '';
+    const _DEMO_KEY_MAP = {'dupont-marie':'patient-1','bernard-luc':'patient-2','lefevre-sophie':'patient-3','moreau-paul':'patient-4','petit-isabelle':'patient-5'};
+    const patientDataAttr = p.is_demo && _DEMO_KEY_MAP[demoKey] ? `data-patient="${_DEMO_KEY_MAP[demoKey]}"` : '';
     return `<a class="patient-card${p.is_demo ? ' demo-card' : ''}"
         href="${patientUrl(p)}" ${patientDataAttr}>
       <div class="card-head">

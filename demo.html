@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>C@NDY &mdash; Mode Démonstration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--rose:#F2D7D9;--rose-deep:#E8BFC2;--rose-light:#FBF0F1;--cerise:#C4717A;--cerise-2:#A85860;--blanc:#FEFAF9;--ardoise:#3D2B2D;--ardoise-2:#5C3F42;--mut:#8C6A6D;--sauge:#5C7D60;--line:rgba(61,43,45,.1);--ff-disp:"DM Serif Display",serif;--fb:"Inter",sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--rose-light);color:var(--ardoise);min-height:100vh;-webkit-font-smoothing:antialiased}
+nav{background:rgba(254,250,249,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-brand{font-family:var(--ff-disp);font-size:1.25rem;color:var(--ardoise);text-decoration:none}
+.nav-badge{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--cerise);color:#fff;padding:3px 8px;border-radius:999px;margin-left:6px}
+.nav-login{font-size:.82rem;color:var(--mut);text-decoration:none;border:1px solid var(--line);padding:6px 14px;border-radius:7px;transition:all .18s}
+.nav-login:hover{border-color:var(--cerise);color:var(--cerise)}
+.hero{max-width:780px;margin:80px auto 0;padding:0 24px;text-align:center}
+.hero-title{font-family:var(--ff-disp);font-size:2.8rem;color:var(--ardoise);line-height:1.15;margin-bottom:20px}
+.hero-title em{color:var(--cerise);font-style:normal}
+.hero-sub{font-size:1.05rem;color:var(--mut);max-width:520px;margin:0 auto 40px;line-height:1.7}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:60px}
+.btn-cta{font-family:var(--fb);font-size:.95rem;font-weight:600;padding:14px 28px;border-radius:12px;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn-cta.pri{background:var(--cerise);color:#fff;border:none}
+.btn-cta.pri:hover{background:var(--cerise-2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(196,113,122,.3)}
+.btn-cta.sec{background:none;color:var(--ardoise);border:1.5px solid var(--line)}
+.btn-cta.sec:hover{border-color:var(--cerise);color:var(--cerise)}
+.features{max-width:900px;margin:0 auto 80px;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.feat{background:var(--blanc);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+.feat-ico{font-size:1.8rem;margin-bottom:10px}
+.feat-title{font-family:var(--ff-disp);font-size:1rem;color:var(--ardoise);margin-bottom:6px}
+.feat-desc{font-size:.82rem;color:var(--mut);line-height:1.6}
+.alert-demo{max-width:600px;margin:0 auto 40px;background:rgba(92,125,96,.08);border:1px solid rgba(92,125,96,.25);border-radius:10px;padding:14px 18px;font-size:.83rem;color:var(--sauge);text-align:center;line-height:1.55}
+.alert-demo strong{color:var(--ardoise)}
+.patient-preview{max-width:700px;margin:0 auto 80px;padding:0 24px}
+.preview-title{font-family:var(--ff-disp);font-size:1.2rem;color:var(--ardoise);margin-bottom:16px;text-align:center}
+.preview-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.preview-card{background:var(--blanc);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .18s;text-decoration:none;display:block}
+.preview-card:hover{border-color:var(--cerise);transform:translateY(-1px);box-shadow:0 4px 14px rgba(61,43,45,.07)}
+.preview-card.main{border-left:3px solid var(--cerise)}
+.preview-avatar{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--rose-deep),var(--cerise));display:flex;align-items:center;justify-content:center;font-family:var(--ff-disp);font-size:.9rem;color:#fff;font-weight:700;margin-bottom:10px}
+.preview-name{font-family:var(--ff-disp);font-size:.95rem;color:var(--ardoise);margin-bottom:2px}
+.preview-meta{font-size:.74rem;color:var(--mut)}
+.preview-badge{font-size:.65rem;font-weight:700;color:var(--cerise);background:rgba(196,113,122,.1);border-radius:4px;padding:2px 7px;display:inline-block;margin-top:5px}
+.preview-alert{font-size:.65rem;font-weight:700;color:#fff;background:#C0392B;border-radius:4px;padding:2px 7px;display:inline-block;margin-top:3px}
+footer{text-align:center;padding:32px 24px;font-size:.77rem;color:var(--mut);border-top:1px solid var(--line)}
+@media(max-width:600px){.hero-title{font-size:2rem}.hero{margin-top:48px}.cta-row{flex-direction:column;align-items:center}.btn-cta{width:100%;justify-content:center;max-width:340px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">C<span style="color:var(--cerise)">@</span>NDY<span class="nav-badge">Démo</span></span>
+  <a href="login.html" class="nav-login">Connexion professionnelle</a>
+</nav>
+
+<div class="hero">
+  <h1 class="hero-title">Le dossier médical<br>pensé pour le <em>médecin</em></h1>
+  <p class="hero-sub">Explorez C@NDY sans créer de compte — toutes les données sont fictives et restent dans votre navigateur.</p>
+
+  <div class="cta-row">
+    <a href="patient-4-moreau-paul.html" class="btn-cta pri" onclick="startDemo()">
+      &#9654;&#65038; Lancer la démonstration
+    </a>
+    <a href="patients.html" class="btn-cta sec" onclick="startDemo()">
+      &#128101; Voir tous les patients
+    </a>
+  </div>
+
+  <div class="alert-demo">
+    &#9989; <strong>Données fictives</strong> — Aucune information médicale réelle.
+    Toutes les saisies sont stockées uniquement dans votre navigateur et effaçables en un clic.
+  </div>
+</div>
+
+<div class="patient-preview">
+  <div class="preview-title">5 patients de démonstration</div>
+  <div class="preview-cards">
+    <a href="patient-1-dupont-marie.html" class="preview-card" onclick="startDemo()">
+      <div class="preview-avatar">MD</div>
+      <div class="preview-name">Dupont, Marie</div>
+      <div class="preview-meta">74 ans &middot; F &middot; A+</div>
+      <span class="preview-badge">HTA</span>
+    </a>
+    <a href="patient-2-bernard-luc.html" class="preview-card" onclick="startDemo()">
+      <div class="preview-avatar">LB</div>
+      <div class="preview-name">Bernard, Luc</div>
+      <div class="preview-meta">45 ans &middot; H &middot; B+</div>
+      <span class="preview-badge">Lombalgie</span>
+    </a>
+    <a href="patient-3-lefevre-sophie.html" class="preview-card" onclick="startDemo()">
+      <div class="preview-avatar">SL</div>
+      <div class="preview-name">Lefèvre, Sophie</div>
+      <div class="preview-meta">32 ans &middot; F &middot; O+</div>
+      <span class="preview-badge">Rhinopharyngite</span>
+    </a>
+    <a href="patient-4-moreau-paul.html" class="preview-card main" onclick="startDemo()">
+      <div class="preview-avatar">PM</div>
+      <div class="preview-name">Moreau, Paul</div>
+      <div class="preview-meta">67 ans &middot; H &middot; O+</div>
+      <span class="preview-badge">HTA &middot; Diabète T2</span><br>
+      <span class="preview-alert">&#9888;&#65039; Allergie pénicilline</span>
+    </a>
+    <a href="patient-5-petit-isabelle.html" class="preview-card" onclick="startDemo()">
+      <div class="preview-avatar">IP</div>
+      <div class="preview-name">Petit, Isabelle</div>
+      <div class="preview-meta">58 ans &middot; F &middot; AB-</div>
+      <span class="preview-badge">Suivi chronique</span>
+    </a>
+  </div>
+</div>
+
+<div class="features">
+  <div class="feat">
+    <div class="feat-ico">&#128202;</div>
+    <div class="feat-title">Constantes dynamiques</div>
+    <div class="feat-desc">Saisissez des constantes vitales et voyez le graphique se mettre à jour en temps réel.</div>
+  </div>
+  <div class="feat">
+    <div class="feat-ico">&#127908;</div>
+    <div class="feat-title">Dictée vocale</div>
+    <div class="feat-desc">Le microphone transcrit et structure automatiquement le compte-rendu médical.</div>
+  </div>
+  <div class="feat">
+    <div class="feat-ico">&#128138;</div>
+    <div class="feat-title">Sécurité médicamenteuse</div>
+    <div class="feat-desc">Prescrivez "Amoxicilline" sur le dossier Moreau — l'alerte allergie pénicilline se déclenche immédiatement.</div>
+  </div>
+  <div class="feat">
+    <div class="feat-ico">&#128196;</div>
+    <div class="feat-title">Ordonnances PDF</div>
+    <div class="feat-desc">Générez une ordonnance en PDF avec filigrane DÉMONSTRATION, prête à imprimer.</div>
+  </div>
+  <div class="feat">
+    <div class="feat-ico">&#128193;</div>
+    <div class="feat-title">Documents médicaux</div>
+    <div class="feat-desc">Bilan biologique, ECG, radio thorax — aperçu des documents avec les résultats fictifs.</div>
+  </div>
+  <div class="feat">
+    <div class="feat-ico">&#127919;</div>
+    <div class="feat-title">Visite guidée</div>
+    <div class="feat-desc">Le bandeau de démo propose un parcours pas à pas pour découvrir toutes les fonctionnalités.</div>
+  </div>
+</div>
+
+<footer>
+  C@NDY &mdash; Logiciel médical &mdash; D&eacute;monstration &mdash; Donn&eacute;es fictives uniquement<br>
+  <a href="login.html" style="color:var(--cerise)">Connexion professionnelle</a>
+</footer>
+
+<script>
+function startDemo() {
+  localStorage.setItem('candy_demo_public', '1');
+}
+// Si on arrive directement sur demo.html avec ?go=1, démarrer tout de suite
+if (new URLSearchParams(location.search).get('go') === '1') {
+  startDemo();
+  location.href = 'patient-4-moreau-paul.html';
+}
+</script>
+</body>
+</html>

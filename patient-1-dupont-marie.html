@@ -79,6 +79,7 @@ nav{position:sticky;top:0;z-index:200;background:rgba(254,250,249,.92);backdrop-
 <script src="config.js"></script>
 <script src="auth.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <nav>
@@ -252,14 +253,18 @@ nav{position:sticky;top:0;z-index:200;background:rgba(254,250,249,.92);backdrop-
         <div class="ordo-med"><strong>Dr. Jean Martin</strong>M&eacute;decine g&eacute;n&eacute;rale<br>N&deg; RPPS : 10012345678<br>22 rue de la R&eacute;publique, 69003 Lyon<br>T&eacute;l. : 04 72 00 00 00</div>
         <div class="ordo-pat"><strong>Marie Dupont</strong>N&eacute;(e) le 12/03/1952<br>14 rue des Lilas, 69003 Lyon<br>N&deg; SS : 3 52 03 69 049 123 45</div>
       </div>
-      <div style="font-size:.82rem;color:var(--mut);margin-bottom:12px"><span style="color:var(--cerise);font-weight:600">Ordonnance</span> du <span id="ordo-date-today"></span></div>
+      <div style="font-size:.82rem;color:var(--mut);margin-bottom:8px"><span style="color:var(--cerise);font-weight:600">Ordonnance</span> du <span id="ordo-date-today"></span></div>
+      <div style="background:rgba(192,57,43,.06);border:1px solid rgba(192,57,43,.2);border-radius:7px;padding:8px 12px;font-size:.75rem;color:#C0392B;margin-bottom:10px">
+        &#9888;&#65039; <strong>Allergies connues</strong> &mdash; P&eacute;nicilline (s&eacute;v&egrave;re), Aspirine (mod&eacute;r&eacute;e)
+      </div>
+      <div id="ordo-alert-safety-1" style="border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.82rem;line-height:1.5;display:none"></div>
       <div style="border-bottom:1px solid #eee;padding-bottom:16px;margin-bottom:14px">
-        <textarea class="ordo-textarea" placeholder="Saisir les prescriptions&#8230;&#10;&#10;Ex :&#10;- Amlodipine 5 mg &#8212; 1 cp matin &#8212; 3 mois&#10;- Bisoprolol 5 mg &#8212; 1 cp matin &#8212; 3 mois"></textarea>
+        <textarea id="ordo-p1-textarea" class="ordo-textarea" placeholder="Saisir les prescriptions&#8230;&#10;&#10;Ex :&#10;- Amlodipine 5 mg &#8212; 1 cp matin &#8212; 3 mois&#10;- Bisoprolol 5 mg &#8212; 1 cp matin &#8212; 3 mois" oninput="checkOrdoSafety1(this.value)"></textarea>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:flex-end">
         <div style="font-size:.78rem;color:var(--mut)"><em>Cachet et signature</em><br><div style="width:160px;height:60px;border:1px dashed #ccc;border-radius:6px;margin-top:6px;display:flex;align-items:center;justify-content:center;font-size:.72rem;color:#ccc">Signature</div></div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-          <button class="btn pri" onclick="window.print()">&#128424; Imprimer</button>
+          <button class="btn pri" onclick="generateOrdoPDF1()">&#128196; G&eacute;n&eacute;rer PDF</button>
           <button class="btn" onclick="alert('Envoi s&eacute;curis&eacute; MSSant&eacute; disponible dans la version compl&egrave;te.')">&#128231; Envoyer</button>
           <button class="btn" onclick="showOrdo('list')">Annuler</button>
         </div>
@@ -364,5 +369,99 @@ if(!localStorage.getItem(OBK)){document.getElementById('ob').style.display='flex
 <script src="demo-data.js"></script>
 <script src="prescription-safety.js"></script>
 <script src="demo-banner.js"></script>
+<script>
+// ── Safety checker ordonnance patient-1 ──
+let _safetyTimer1;
+function checkOrdoSafety1(text) {
+  clearTimeout(_safetyTimer1);
+  _safetyTimer1 = setTimeout(() => {
+    const alertEl = document.getElementById('ordo-alert-safety-1');
+    if (!alertEl || typeof DEMO_MEDICATIONS === 'undefined') return;
+    const lines = text.split('\n').filter(l => l.trim());
+    const alerts = [];
+    lines.forEach(line => {
+      const words = line.toLowerCase().split(/[\s,;\-—:]/);
+      DEMO_MEDICATIONS.forEach(med => {
+        const dciParts = med.dci.split('_');
+        const matched  = dciParts.some(p => p.length > 4 && words.some(w => w.includes(p))) ||
+                         words.some(w => w.length > 4 && med.nom.toLowerCase().includes(w));
+        if (matched) {
+          const result = checkPrescriptionSafety(med.dci, 'patient-1');
+          if (result && result.level) alerts.push({ med: med.nom, ...result });
+        }
+      });
+    });
+    const seen = new Set();
+    const unique = alerts.filter(a => { if (seen.has(a.med)) return false; seen.add(a.med); return true; });
+    if (!unique.length) { alertEl.style.display = 'none'; return; }
+    const worst = unique.find(a => a.level === 'critique') || unique.find(a => a.level === 'majeure') || unique[0];
+    const colors = { critique:'rgba(192,57,43,.08),1px solid rgba(192,57,43,.3),#A00', majeure:'rgba(255,165,0,.08),1px solid rgba(255,165,0,.4),#8a6000', surveillance:'rgba(255,210,0,.08),1px solid rgba(255,210,0,.5),#7a6000' };
+    const [bg,border,color] = (colors[worst.level] || colors.surveillance).split(',');
+    alertEl.style.cssText = `border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.82rem;line-height:1.5;display:block;background:${bg};border:${border};color:${color}`;
+    alertEl.innerHTML = unique.map(a => `<div style="margin-bottom:4px">${a.message}</div>`).join('');
+  }, 400);
+}
+
+// ── Génération PDF ordonnance patient-1 ──
+function generateOrdoPDF1() {
+  if (typeof window.jspdf === 'undefined') { alert('jsPDF non chargé. Vérifiez votre connexion internet.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc     = new jsPDF();
+  const contenu = document.getElementById('ordo-p1-textarea')?.value || '(Ordonnance vide)';
+  const today   = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+  const num     = 'DEMO-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*900)+100);
+
+  // Filigrane
+  doc.setFontSize(48); doc.setTextColor(220,220,220);
+  for (let y = 40; y < 290; y += 80) doc.text('DÉMONSTRATION', 10, y, {angle:38});
+
+  // Bandeau
+  doc.setFillColor(251,240,241); doc.rect(0,0,210,18,'F');
+  doc.setFontSize(8); doc.setTextColor(164,88,96);
+  doc.text('DOCUMENT DE DÉMONSTRATION — C@NDY — NE PAS UTILISER À DES FINS MÉDICALES', 10, 7);
+  doc.setDrawColor(196,113,122); doc.line(0,18,210,18);
+
+  // En-tête médecin
+  doc.setFontSize(12); doc.setTextColor(61,43,45);
+  doc.text('Dr. Jean Martin', 12, 30);
+  doc.setFontSize(9); doc.setTextColor(92,63,66);
+  doc.text('Médecine générale — N° RPPS : 10012345678', 12, 36);
+  doc.text('22 rue de la République, 69003 Lyon — Tél. : 04 72 00 00 00', 12, 41);
+
+  // Info patient
+  doc.setFontSize(10); doc.setTextColor(61,43,45);
+  doc.text('Marie Dupont', 130, 30);
+  doc.setFontSize(9); doc.setTextColor(92,63,66);
+  doc.text('Née le 12/03/1952 — 72 ans', 130, 36);
+  doc.text('14 rue des Lilas, 69003 Lyon', 130, 41);
+
+  // Séparateur
+  doc.setDrawColor(196,113,122); doc.setLineWidth(0.5); doc.line(12,48,198,48);
+  doc.setFontSize(9); doc.setTextColor(140,106,109);
+  doc.text(`Ordonnance N° ${num}  —  ${today}`, 12, 55);
+
+  // Alerte allergie
+  doc.setFillColor(255,230,230); doc.rect(12,60,186,12,'F');
+  doc.setFontSize(8.5); doc.setTextColor(160,0,0);
+  doc.text('⚠ ALLERGIE PÉNICILLINE (sévère) & ASPIRINE (modérée) — Vérifier toute prescription', 14, 68);
+
+  // Contenu
+  doc.setFontSize(11); doc.setTextColor(61,43,45);
+  const lines = doc.splitTextToSize(contenu, 180);
+  doc.text(lines, 12, 82);
+
+  // Signature
+  doc.setFontSize(9); doc.setTextColor(140,106,109);
+  doc.text('Cachet et signature :', 12, 240);
+  doc.setDrawColor(200,200,200); doc.rect(12,244,70,25);
+  doc.setFontSize(8); doc.text('Signature démo', 32, 257);
+
+  // Pied
+  doc.setFontSize(7); doc.setTextColor(180,180,180);
+  doc.text('Ce document est une démonstration fictive générée par C@NDY. Toutes les données sont fictives.', 10, 285);
+
+  doc.save(`ordonnance-demo-dupont-${num}.pdf`);
+}
+</script>
 </body>
 </html>

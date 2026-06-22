@@ -34,7 +34,7 @@ const DEMO_PATIENT_PROFILES = {
     grossesse:   false,
   },
   'patient-1': {
-    allergies:   [],
+    allergies:   ['allergie_penicilline','allergie_aspirine'],
     conditions:  ['hta'],
     traitements: ['amlodipine','bisoprolol'],
     grossesse:   false,

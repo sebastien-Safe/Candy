@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --rose:#F2D7D9; --rose-deep:#E8BFC2; --rose-light:#FBF0F1;
@@ -132,7 +133,10 @@
 
 <nav>
   <a href="patients.html" class="nav-brand">C<span style="color:var(--cerise)">@</span>NDY<span class="nav-badge">Démo</span></a>
-  <a href="patients.html" class="nav-back">← Liste des patients</a>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="if(_currentPatient)generateDossierPDF(_currentPatient)" style="font-size:.8rem;padding:6px 12px;border-radius:7px;background:var(--cerise);color:#fff;border:none;cursor:pointer;font-family:var(--ff-body);font-weight:600">📄 PDF</button>
+    <a href="patients.html" class="nav-back">← Liste des patients</a>
+  </div>
 </nav>
 
 <div class="page" id="page-content">
@@ -352,7 +356,7 @@ function render(p) {
       <div class="bloc">
         <div class="bloc-header">
           <div class="bloc-title"><span class="ico">👤</span> État civil & coordonnées</div>
-          <button class="bloc-edit">Modifier</button>
+          <button class="bloc-edit" data-action="edit-civil">Modifier</button>
         </div>
         <div class="civil-grid">
           <div class="civil-row"><span class="civil-label">Adresse</span><span class="civil-val">${p.adresse}</span></div>
@@ -366,7 +370,7 @@ function render(p) {
       <div class="bloc">
         <div class="bloc-header">
           <div class="bloc-title"><span class="ico">📊</span> Constantes</div>
-          <button class="bloc-edit">Mettre à jour</button>
+          <button class="bloc-edit" data-action="edit-constantes">Mettre à jour</button>
         </div>
         <div class="constantes">
           <div class="const-card">
@@ -390,7 +394,7 @@ function render(p) {
     <div class="bloc grid-full">
       <div class="bloc-header">
         <div class="bloc-title"><span class="ico">⚠️</span> Allergies connues</div>
-        <button class="bloc-edit">Ajouter</button>
+        <button class="bloc-edit" data-action="add-allergie">Ajouter</button>
       </div>
       <div class="allergie-list">
         ${p.allergies.length === 0
@@ -412,7 +416,7 @@ function render(p) {
     <div class="bloc grid-full">
       <div class="bloc-header">
         <div class="bloc-title"><span class="ico">📅</span> Historique médical</div>
-        <button class="bloc-edit">+ Nouvelle entrée</button>
+        <button class="bloc-edit" data-action="add-historique">+ Nouvelle entrée</button>
       </div>
       <div class="histo-list">
         ${p.historique.map(h => `
@@ -430,10 +434,14 @@ function render(p) {
     </div>
   `;
 
-  // Intercept les boutons "démo"
+  // Wire up les boutons CRUD
   document.querySelectorAll('.bloc-edit').forEach(btn => {
+    const action = btn.dataset.action;
     btn.addEventListener('click', () => {
-      alert('✏️ Mode démo — la modification n\'est pas disponible.\nLa version complète permet d\'éditer tous les champs du dossier patient.');
+      if      (action === 'edit-civil')      openModalCivil(p);
+      else if (action === 'edit-constantes') openModalConstantes(p);
+      else if (action === 'add-allergie')    openModalAllergie(p);
+      else if (action === 'add-historique')  openModalHistorique(p);
     });
   });
 }
@@ -454,10 +462,193 @@ const PATIENTS_DATA = [
   {id:12,nom:'Leroy',prenom:'Marc',naissance:'16/05/2010',age:16,sexe:'M',adresse:'5 place de la Mairie, 69700 Givors',telephone:'04 78 73 11 22',email:'famille.leroy@email.fr',medecin_traitant:'Dr. Martin',profession:'Lycéen',situation:'—',secu:'3 10 05 69 001 123 45',groupe_sanguin:'O+',poids:62,taille:174,allergies:[{nom:'Arachides',type:'Alimentaire',gravite:'Sévère',desc:"Allergie sévère avec antécédent de choc anaphylactique (2023). Adrénaline auto-injectable prescrite (Epipen). Port permanent obligatoire."}],historique:[{date:'30/05/2026',type:'consult',titre:'Suivi allergie arachide',note:"Pas de réaction depuis 12 mois. Bonne gestion de l'éviction. Adrénaline périmée en août — renouvellement prescrit. Consultation allergologue annuelle rappelée.",medecin:'Dr. Martin'},{date:'10/09/2025',type:'ordonnance',titre:'Ordonnance Epipen',note:'Epipen 0.3mg — 2 stylos auto-injecteurs. Port permanent. Renouvellement annuel.',medecin:'Dr. Martin'},{date:'15/04/2024',type:'examen',titre:'Bilan allergologique',note:'IgE spécifiques arachide : 48 kUA/L (très élevé). TPO positif. Pas d\'immunothérapie indiquée à ce stade. Éviction stricte maintenue.',medecin:'Dr. Allard — Allergologue Lyon'}]}
 ];
 
+// ── CRUD localStorage ──────────────────────────────────────────
+let _currentPatient = null;
+
+function _getOvKey(pid) { return 'candy_dossier_' + pid; }
+function _loadOv(pid)   { return JSON.parse(localStorage.getItem(_getOvKey(pid)) || 'null') || {}; }
+function _saveOv(pid, data) {
+  const cur = _loadOv(pid);
+  localStorage.setItem(_getOvKey(pid), JSON.stringify({ ...cur, ...data }));
+}
+
+function applyOverrides(p) {
+  const o = _loadOv(p.id);
+  return {
+    ...p,
+    adresse:          o.adresse          ?? p.adresse,
+    telephone:        o.telephone        ?? p.telephone,
+    email:            o.email            ?? p.email,
+    medecin_traitant: o.medecin_traitant ?? p.medecin_traitant,
+    poids:            o.poids            ?? p.poids,
+    taille:           o.taille           ?? p.taille,
+    allergies:   [...(o.allergies_ajouts || []), ...p.allergies],
+    historique:  [...(o.historique_ajouts || []), ...p.historique],
+  };
+}
+
+function rerender() {
+  if (_currentPatient) render(applyOverrides(_currentPatient));
+}
+
+// ── Modales ──
+function _openModal(id) { document.getElementById(id).classList.add('open'); }
+function _closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openModalCivil(p) {
+  document.getElementById('mc-adresse').value   = p.adresse;
+  document.getElementById('mc-tel').value       = p.telephone;
+  document.getElementById('mc-email').value     = p.email || '';
+  document.getElementById('mc-medecin').value   = p.medecin_traitant;
+  _openModal('modal-civil');
+}
+function saveModalCivil() {
+  _saveOv(_currentPatient.id, {
+    adresse:          document.getElementById('mc-adresse').value,
+    telephone:        document.getElementById('mc-tel').value,
+    email:            document.getElementById('mc-email').value,
+    medecin_traitant: document.getElementById('mc-medecin').value,
+  });
+  _closeModal('modal-civil');
+  rerender();
+}
+
+function openModalConstantes(p) {
+  document.getElementById('mco-poids').value  = p.poids;
+  document.getElementById('mco-taille').value = p.taille;
+  _openModal('modal-constantes');
+}
+function saveModalConstantes() {
+  const poids  = parseFloat(document.getElementById('mco-poids').value);
+  const taille = parseInt(document.getElementById('mco-taille').value);
+  if (!poids || !taille) { alert('Veuillez saisir le poids et la taille.'); return; }
+  _saveOv(_currentPatient.id, { poids, taille });
+  _closeModal('modal-constantes');
+  rerender();
+}
+
+function openModalAllergie(p) {
+  ['ma-nom','ma-type','ma-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ma-gravite').value = 'Modérée';
+  _openModal('modal-allergie');
+}
+function saveModalAllergie() {
+  const nom = document.getElementById('ma-nom').value.trim();
+  if (!nom) { alert('Veuillez saisir le nom de l\'allergène.'); return; }
+  const ov = _loadOv(_currentPatient.id);
+  const ajouts = ov.allergies_ajouts || [];
+  ajouts.unshift({
+    nom,
+    type:    document.getElementById('ma-type').value || 'Médicament',
+    gravite: document.getElementById('ma-gravite').value,
+    desc:    document.getElementById('ma-desc').value,
+  });
+  _saveOv(_currentPatient.id, { allergies_ajouts: ajouts });
+  _closeModal('modal-allergie');
+  rerender();
+}
+
+function openModalHistorique(p) {
+  document.getElementById('mh-date').value     = new Date().toISOString().slice(0,10);
+  document.getElementById('mh-type').value     = 'consult';
+  document.getElementById('mh-titre').value    = '';
+  document.getElementById('mh-note').value     = '';
+  document.getElementById('mh-medecin').value  = p.medecin_traitant;
+  _openModal('modal-historique');
+}
+function saveModalHistorique() {
+  const titre = document.getElementById('mh-titre').value.trim();
+  if (!titre) { alert('Veuillez saisir un titre.'); return; }
+  const rawDate  = document.getElementById('mh-date').value;
+  const dateStr  = rawDate ? new Date(rawDate).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+  const ov       = _loadOv(_currentPatient.id);
+  const ajouts   = ov.historique_ajouts || [];
+  ajouts.unshift({
+    date:    dateStr,
+    type:    document.getElementById('mh-type').value,
+    titre,
+    note:    document.getElementById('mh-note').value,
+    medecin: document.getElementById('mh-medecin').value || 'Dr. Martin',
+  });
+  _saveOv(_currentPatient.id, { historique_ajouts: ajouts });
+  _closeModal('modal-historique');
+  rerender();
+}
+
+// ── PDF dossier ──
+function generateDossierPDF(p) {
+  if (typeof window.jspdf === 'undefined') { alert('jsPDF non chargé.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc  = new jsPDF();
+  const pat  = applyOverrides(p);
+  const imc  = (pat.poids / ((pat.taille/100)**2)).toFixed(1);
+  const today = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Filigrane
+  doc.setFontSize(52); doc.setTextColor(235,235,235);
+  for (let y = 50; y < 290; y += 90) doc.text('DÉMONSTRATION', 8, y, {angle:38});
+
+  // Bandeau
+  doc.setFillColor(251,240,241); doc.rect(0,0,210,16,'F');
+  doc.setFontSize(7); doc.setTextColor(164,88,96);
+  doc.text('DOCUMENT DE DÉMONSTRATION — C@NDY — NE PAS UTILISER À DES FINS MÉDICALES', 10, 6);
+  doc.setDrawColor(196,113,122); doc.line(0,16,210,16);
+
+  // En-tête patient
+  doc.setFontSize(14); doc.setTextColor(61,43,45);
+  doc.text(`${pat.nom}, ${pat.prenom}`, 12, 28);
+  doc.setFontSize(9); doc.setTextColor(92,63,66);
+  doc.text(`Né(e) le ${pat.naissance} — ${pat.age} ans — ${pat.sexe==='F'?'Femme':'Homme'} — Groupe ${pat.groupe_sanguin}`, 12, 35);
+  doc.text(`${pat.adresse}`, 12, 41);
+  doc.text(`N° SS : ${pat.secu}`, 12, 47);
+
+  // Séparateur
+  doc.setDrawColor(196,113,122); doc.setLineWidth(0.5); doc.line(12,52,198,52);
+  doc.setFontSize(7); doc.setTextColor(140,106,109);
+  doc.text(`Dossier généré le ${today} — Médecin traitant : ${pat.medecin_traitant}`, 12, 57);
+
+  // Constantes
+  doc.setFontSize(10); doc.setTextColor(61,43,45); doc.setFont(undefined,'bold');
+  doc.text('Constantes', 12, 66);
+  doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(92,63,66);
+  doc.text(`Poids : ${pat.poids} kg   Taille : ${pat.taille} cm   IMC : ${imc}`, 12, 72);
+
+  // Allergies
+  doc.setFontSize(10); doc.setTextColor(61,43,45); doc.setFont(undefined,'bold');
+  doc.text('Allergies', 12, 82);
+  doc.setFont(undefined,'normal'); doc.setFontSize(9); doc.setTextColor(92,63,66);
+  if (pat.allergies.length === 0) {
+    doc.text('Aucune allergie connue', 12, 88);
+  } else {
+    pat.allergies.forEach((a,i) => doc.text(`• ${a.nom} (${a.gravite}) — ${a.desc.slice(0,80)}`, 12, 88+i*6));
+  }
+
+  // Historique
+  let yPos = 88 + Math.max(1,pat.allergies.length)*6 + 10;
+  doc.setFontSize(10); doc.setTextColor(61,43,45); doc.setFont(undefined,'bold');
+  doc.text('Historique médical', 12, yPos); yPos += 8;
+  doc.setFont(undefined,'normal'); doc.setFontSize(8.5); doc.setTextColor(92,63,66);
+  pat.historique.slice(0,10).forEach(h => {
+    if (yPos > 270) return;
+    doc.setTextColor(196,113,122); doc.text(`${h.date} — ${h.titre}`, 12, yPos); yPos += 5;
+    doc.setTextColor(92,63,66);
+    const noteLines = doc.splitTextToSize(h.note, 180);
+    noteLines.slice(0,2).forEach(l => { if (yPos < 272) { doc.text(l, 14, yPos); yPos += 4.5; } });
+    yPos += 2;
+  });
+
+  // Pied
+  doc.setFontSize(7); doc.setTextColor(180,180,180);
+  doc.text('Ce document est une démonstration fictive générée par C@NDY. Toutes les données sont fictives.', 10, 285);
+
+  doc.save(`dossier-demo-${pat.nom.toLowerCase()}-${pat.prenom.toLowerCase()}.pdf`);
+}
+
 const id = parseInt(getParam('id'));
 const p = PATIENTS_DATA.find(x => x.id === id);
 if (p) {
-  render(p);
+  _currentPatient = p;
+  render(applyOverrides(p));
 } else {
   document.getElementById('page-content').innerHTML = `
     <div style="text-align:center;padding:60px 0">
@@ -467,6 +658,114 @@ if (p) {
       <a href="patients.html" style="color:var(--cerise);font-weight:600">← Retour à la liste</a>
     </div>`;
 }
+</script>
+
+<!-- Styles modaux partagés -->
+<style>
+.modal-bg{position:fixed;inset:0;z-index:9998;background:rgba(61,43,45,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal-box{background:var(--blanc);border-radius:20px;padding:28px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-title{font-family:var(--ff-disp);font-size:1.1rem;color:var(--ardoise);margin-bottom:18px}
+.form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.form-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.form-input{background:var(--rose-light);border:1.5px solid var(--line);border-radius:8px;padding:8px 12px;font-family:var(--ff-body);font-size:.87rem;color:var(--ardoise);outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--cerise)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn-modal{font-size:.82rem;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--ff-body);font-weight:600;transition:all .18s}
+.btn-modal.sec{background:none;border:1px solid var(--line);color:var(--mut)}
+.btn-modal.pri{background:var(--cerise);border:1px solid var(--cerise);color:#fff}
+.btn-modal.pri:hover{background:var(--cerise-2)}
+</style>
+
+<!-- MODAL ÉTAT CIVIL -->
+<div id="modal-civil" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-title">👤 Modifier l'état civil</div>
+    <div class="form-row"><label class="form-label">Adresse</label><input class="form-input" id="mc-adresse" type="text"></div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">Téléphone</label><input class="form-input" id="mc-tel" type="tel"></div>
+      <div class="form-row"><label class="form-label">E-mail</label><input class="form-input" id="mc-email" type="email"></div>
+    </div>
+    <div class="form-row"><label class="form-label">Médecin traitant</label><input class="form-input" id="mc-medecin" type="text"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+      <button class="btn-modal sec" onclick="_closeModal('modal-civil')">Annuler</button>
+      <button class="btn-modal pri" onclick="saveModalCivil()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONSTANTES -->
+<div id="modal-constantes" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-title">📊 Mettre à jour les constantes</div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">Poids (kg)</label><input class="form-input" id="mco-poids" type="number" min="20" max="300" step="0.1"></div>
+      <div class="form-row"><label class="form-label">Taille (cm)</label><input class="form-input" id="mco-taille" type="number" min="50" max="250"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+      <button class="btn-modal sec" onclick="_closeModal('modal-constantes')">Annuler</button>
+      <button class="btn-modal pri" onclick="saveModalConstantes()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALLERGIE -->
+<div id="modal-allergie" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Ajouter une allergie</div>
+    <div class="form-row"><label class="form-label">Allergène *</label><input class="form-input" id="ma-nom" type="text" placeholder="Pénicilline, Latex, Arachides…"></div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">Type</label>
+        <select class="form-input" id="ma-type">
+          <option>Médicament</option><option>Alimentaire</option><option>Contact</option><option>Environnement</option>
+        </select>
+      </div>
+      <div class="form-row"><label class="form-label">Gravité</label>
+        <select class="form-input" id="ma-gravite">
+          <option>Sévère</option><option>Modérée</option><option>Mineure</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Description</label><textarea class="form-input" id="ma-desc" rows="3" placeholder="Réaction observée, conduite à tenir…" style="resize:vertical"></textarea></div>
+    <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+      <button class="btn-modal sec" onclick="_closeModal('modal-allergie')">Annuler</button>
+      <button class="btn-modal pri" onclick="saveModalAllergie()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HISTORIQUE -->
+<div id="modal-historique" class="modal-bg">
+  <div class="modal-box">
+    <div class="modal-title">📅 Nouvelle entrée médicale</div>
+    <div class="form-grid">
+      <div class="form-row"><label class="form-label">Date</label><input class="form-input" id="mh-date" type="date"></div>
+      <div class="form-row"><label class="form-label">Type</label>
+        <select class="form-input" id="mh-type">
+          <option value="consult">🩺 Consultation</option>
+          <option value="ordonnance">📋 Ordonnance</option>
+          <option value="examen">🔬 Examen / Bilan</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label class="form-label">Titre *</label><input class="form-input" id="mh-titre" type="text" placeholder="Suivi trimestriel, Bilan annuel…"></div>
+    <div class="form-row"><label class="form-label">Compte-rendu</label><textarea class="form-input" id="mh-note" rows="4" placeholder="Observations, résultats, conclusions…" style="resize:vertical"></textarea></div>
+    <div class="form-row"><label class="form-label">Médecin</label><input class="form-input" id="mh-medecin" type="text"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;justify-content:flex-end">
+      <button class="btn-modal sec" onclick="_closeModal('modal-historique')">Annuler</button>
+      <button class="btn-modal pri" onclick="saveModalHistorique()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Fermer modaux au clic fond ou Échap
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+});
 </script>
 </body>
 </html>

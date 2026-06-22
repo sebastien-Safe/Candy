@@ -47,7 +47,24 @@ function speechToText(targetId, onResult) {
   };
   rec.onerror = e => {
     console.warn('[C@NDY] SpeechRecognition:', e.error);
+    _micActive = false;
+    _micRec = null;
+    const btn = document.getElementById('mic-btn');
+    if (btn) { btn.style.background = 'rgba(196,113,122,.1)'; btn.title = 'Dictée vocale'; }
+    const status = document.getElementById('dictee-status');
+    if (status) status.style.display = 'none';
     if (e.error === 'not-allowed') alert('Accès au microphone refusé.\nAutorisez-le dans les paramètres du navigateur.');
+    else if (e.error === 'no-speech') alert('Aucune voix détectée. Vérifiez votre microphone et réessayez.');
+  };
+  rec.onend = () => {
+    if (_micActive) {
+      _micActive = false;
+      _micRec = null;
+      const btn = document.getElementById('mic-btn');
+      if (btn) { btn.style.background = 'rgba(196,113,122,.1)'; btn.title = 'Dictée vocale'; }
+      const status = document.getElementById('dictee-status');
+      if (status) status.style.display = 'none';
+    }
   };
   return rec;
 }
@@ -57,11 +74,14 @@ let _micActive = false;
 
 function toggleDictee(targetId, structureTargets) {
   targetId = targetId || 'suivi-notes';
-  const btn = document.getElementById('mic-btn');
+  const btn    = document.getElementById('mic-btn');
+  const status = document.getElementById('dictee-status');
   if (_micActive && _micRec) {
     _micRec.stop();
     _micActive = false;
+    _micRec = null;
     if (btn) { btn.style.background = 'rgba(196,113,122,.1)'; btn.title = 'Dictée vocale'; }
+    if (status) status.style.display = 'none';
     return;
   }
   _micRec = speechToText(targetId, (transcript, isFinal) => {
@@ -80,6 +100,7 @@ function toggleDictee(targetId, structureTargets) {
     _micRec.start();
     _micActive = true;
     if (btn) { btn.style.background = 'rgba(196,113,122,.35)'; btn.title = 'Arrêter la dictée'; }
+    if (status) { status.textContent = '🎙️ Dictée en cours — parlez maintenant…'; status.style.display = 'block'; }
   }
 }
 
